@@ -135,11 +135,11 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
             txt_clip = TextClip(
                 text, 
-                fontsize=50, 
-                color='white', 
+                fontsize=45, 
+                color='Yellow', 
                 font=font_path, 
                 stroke_color='black', 
-                stroke_width=2,
+                stroke_width=3,
                 size=(video.w - 80, None), 
                 method='caption'
             )
