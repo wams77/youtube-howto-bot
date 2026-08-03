@@ -17,20 +17,22 @@ PEXELS_KEY = os.environ.get("PEXELS_API_KEY")
 YOUTUBE_TOKEN_JSON = os.environ.get("YOUTUBE_TOKEN")
 
 # ==========================================
-# 2. FUNGSI GEMINI (IDE & NASKAH)
+# 2. FUNGSI GEMINI (IDE & NASKAH ACAK/UNIK)
 # ==========================================
 def generate_history_short_script():
-    print("[*] Meminta Gemini membuat naskah YouTube Short Sejarah...")
+    print("[*] Meminta Gemini membuat naskah YouTube Short Sejarah yang unik...")
     if not GEMINI_KEY:
         print("[-] Error: GEMINI_API_KEY tidak ditemukan!")
         return None
         
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-3.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
+    # Menambahkan instruksi agar topik selalu di-refresh dan tidak monoton/terulang
     prompt = """
-    Bertindaklah sebagai pembuat konten YouTube Shorts misteri/sejarah.
-    Buatkan 1 fakta sejarah dunia yang sangat mengejutkan, aneh, atau jarang diketahui orang.
+    Bertindaklah sebagai pembuat konten YouTube Shorts misteri/sejarah dunia yang kreatif.
+    Pilihlah 1 fakta sejarah dunia yang SANGAT UNIK, ANEH, DAN JARANG DIKETAHUI ORANG. 
+    PENTING: Jangan memilih fakta sejarah yang terlalu mainstream atau berulang. Cari dari era atau belahan dunia yang berbeda (misalnya sejarah Asia kuno, Afrika, Amerika Latin, atau Eropa pertengahan yang jarang dibahas).
     
     ATURAN KETAT:
     - Naskah narasi (script_text) MAKSIMAL 80 kata agar durasinya pas di bawah 60 detik.
@@ -47,12 +49,11 @@ def generate_history_short_script():
         response = model.generate_content(prompt)
         raw_text = response.text.strip().replace("```json", "").replace("```", "")
         script_data = json.loads(raw_text)
-        print(f"[+] Berhasil membuat naskah! Judul: {script_data['title']}")
+        print(f"[+] Berhasil membuat naskah unik! Judul: {script_data['title']}")
         return script_data
     except Exception as e:
         print("[-] Gagal memproses data JSON dari Gemini:", e)
         return None
-
 # ==========================================
 # 3. FUNGSI PEXELS (UNDUH B-ROLL VERTIKAL)
 # ==========================================
