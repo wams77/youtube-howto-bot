@@ -1,12 +1,17 @@
-name: YouTube Shorts History Bot
+name: YouTube Shorts History Bot (Auto 3x Sehari WITA)
 
 on:
   schedule:
-    - cron: '0 8 * * *' # Berjalan otomatis setiap jam 08:00 UTC
-  workflow_dispatch:     # Memungkinkan Anda menekan tombol "Run workflow" secara manual
+    # Jadwal otomatis untuk WITA (UTC+8):
+    # - Pukul 07:00 WITA -> 23:00 UTC (hari sebelumnya)
+    # - Pukul 12:00 WITA -> 04:00 UTC
+    # - Pukul 18:00 WITA -> 10:00 UTC
+    - cron: '0 23,4,10 * * *'
+  
+  workflow_dispatch:     # Memungkinkan Anda menjalankan bot secara manual kapan saja dari tab Actions
 
 jobs:
-  generate-video-assets:
+  run-bot:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         sudo apt-get update
         sudo apt-get install -y imagemagick
-        # PERBAIKAN: Membuka izin kebijakan keamanan ImageMagick untuk membaca file teks sementara
+        # Membuka izin kebijakan keamanan ImageMagick untuk merender teks kustom
         sudo sed -i 's/rights="none" pattern="@\*"/rights="read|write" pattern="@\*"/g' /etc/ImageMagick-6/policy.xml
         pip install -r requirements.txt
 
@@ -31,15 +36,6 @@ jobs:
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-        YOUTUBE_TOKEN: ${{ secrets.YOUTUBE_TOKEN }}  # <--- Pastikan baris ini ada!
+        YOUTUBE_TOKEN: ${{ secrets.YOUTUBE_TOKEN }}
       run: |
         python main.py
-
-    - name: Upload Output (JSON & MP4) as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: youtube-shorts-assets
-        path: |
-          script_data.json
-          background_shorts.mp4
-        retention-days: 7 # File akan otomatis terhapus dari server setelah 7 hari
