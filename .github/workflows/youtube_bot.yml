@@ -27,11 +27,11 @@ jobs:
         sudo sed -i 's/rights="none" pattern="@\*"/rights="read|write" pattern="@\*"/g' /etc/ImageMagick-6/policy.xml
         pip install -r requirements.txt
 
-    - name: Run Bot Script (Gemini & Pexels)
+    - name: Run Bot Script
       env:
-        # Menarik API Key dari GitHub Secrets ke dalam Environment Bot
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        YOUTUBE_TOKEN: ${{ secrets.YOUTUBE_TOKEN }}  # <--- Pastikan baris ini ada!
       run: |
         python main.py
 
