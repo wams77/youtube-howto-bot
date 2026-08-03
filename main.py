@@ -26,7 +26,7 @@ def generate_history_short_script():
         return None
         
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-3.5-flash')
     
     prompt = """
     Bertindaklah sebagai pembuat konten YouTube Shorts misteri/sejarah.
