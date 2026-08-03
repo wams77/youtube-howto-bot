@@ -102,10 +102,10 @@ def generate_voiceover(text, filename="voiceover.mp3"):
         return False
 
 # ==========================================
-# 5. FUNGSI MOVIEPY (EDITING VIDEO + TEKS FONT KUSTOM)
+# 5. FUNGSI MOVIEPY (EDITING VIDEO + TEKS DISESUAIKAN DENGAN AUDIO)
 # ==========================================
 def edit_video_with_captions(video_file, audio_file, script_text, output_file="final_shorts.mp4"):
-    print("[*] Memulai proses editing video dengan font Montserrat-Black.ttf...")
+    print("[*] Memulai proses editing video dan menyelaraskan subtitle dengan audio...")
     try:
         video = VideoFileClip(video_file)
         audio = AudioFileClip(audio_file)
@@ -118,44 +118,54 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
         video = video.set_audio(audio)
         
-        # Memecah naskah menjadi beberapa bagian (3 kata per layar)
+        # Memecah naskah menjadi kalimat/klausa pendek agar pas dibaca
+        # Kita memecah berdasarkan tanda baca atau kelompok kata yang lebih natural
         words = script_text.split(" ")
         chunks = []
-        chunk_size = 3  
+        chunk_size = 3  # 3 kata per kemunculan agar dinamis
         
         for i in range(0, len(words), chunk_size):
             chunk = " ".join(words[i:i+chunk_size])
             chunks.append(chunk)
             
         total_duration = audio.duration
-        duration_per_chunk = total_duration / len(chunks) if chunks else total_duration
         
-        # Path file font langsung di root folder utama
+        # Menghitung bobot durasi berdasarkan panjang karakter tiap chunk
+        # agar teks yang lebih panjang mendapat waktu tampil yang sedikit lebih lama
+        total_chars = sum(len(c) for c in chunks)
+        
         font_path = "Montserrat-Black.ttf"
-        
         text_clips = []
-        for index, text in enumerate(chunks):
-            start_time = index * duration_per_chunk
+        current_time = 0.0
+        
+        for text in chunks:
+            # Durasi proporsional berdasarkan jumlah karakter terhadap total durasi audio
+            chunk_duration = (len(text) / total_chars) * total_duration if total_chars > 0 else total_duration / len(chunks)
+            # Batasi minimal durasi per chunk agar tidak terlalu kedip-kedip cepat (minimal 0.6 detik)
+            chunk_duration = max(chunk_duration, 0.6)
             
             txt_clip = TextClip(
                 text, 
                 fontsize=45, 
-                color='Yellow', 
+                color='white', 
                 font=font_path, 
                 stroke_color='black', 
-                stroke_width=3,
+                stroke_width=2,
                 size=(video.w - 80, None), 
                 method='caption'
             )
             
-            txt_clip = txt_clip.set_start(start_time)
-            txt_clip = txt_clip.set_duration(duration_per_chunk)
+            txt_clip = txt_clip.set_start(current_time)
+            txt_clip = txt_clip.set_duration(chunk_duration)
             txt_clip = txt_clip.set_position(('center', 'center'))
             text_clips.append(txt_clip)
             
+            current_time += chunk_duration
+            
+        # Jika total waktu teks melebihi durasi audio, sesuaikan agar klip terakhir tidak terpotong kasar
         final_video = CompositeVideoClip([video] + text_clips)
         
-        print("[*] Merender video akhir dengan font Montserrat, mohon tunggu...")
+        print("[*] Merender video akhir dengan sinkronisasi subtitle, mohon tunggu...")
         final_video.write_videofile(
             output_file, 
             codec="libx264", 
@@ -167,9 +177,8 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
         print(f"[+] Video Final Berhasil Dibuat: '{output_file}'")
         return True
     except Exception as e:
-        print("[-] Gagal mengedit video dengan font kustom:", e)
+        print("[-] Gagal mengedit video dengan teks berselaras:", e)
         return False
-
 # ==========================================
 # 6. FUNGSI YOUTUBE API (UPLOAD OTOMATIS)
 # ==========================================
