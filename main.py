@@ -26,7 +26,7 @@ def generate_history_short_script():
         return None
         
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-3.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = """
     Bertindaklah sebagai pembuat konten YouTube Shorts misteri/sejarah.
@@ -98,10 +98,10 @@ def generate_voiceover(text, filename="voiceover.mp3"):
         return False
 
 # ==========================================
-# 5. FUNGSI MOVIEPY (EDITING VIDEO + TEKS CAPCUT)
+# 5. FUNGSI MOVIEPY (EDITING VIDEO + TEKS FONT KUSTOM)
 # ==========================================
 def edit_video_with_captions(video_file, audio_file, script_text, output_file="final_shorts.mp4"):
-    print("[*] Memulai proses editing video dengan teks gaya CapCut...")
+    print("[*] Memulai proses editing video dengan font Montserrat-Black.ttf...")
     try:
         video = VideoFileClip(video_file)
         audio = AudioFileClip(audio_file)
@@ -114,7 +114,7 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
         video = video.set_audio(audio)
         
-        # Memecah naskah menjadi beberapa bagian (misal: 3 kata per layar agar lebih pas & dinamis)
+        # Memecah naskah menjadi beberapa bagian (3 kata per layar)
         words = script_text.split(" ")
         chunks = []
         chunk_size = 3  
@@ -126,18 +126,18 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
         total_duration = audio.duration
         duration_per_chunk = total_duration / len(chunks) if chunks else total_duration
         
+        # Path file font langsung di root folder utama
+        font_path = "Montserrat-Black.ttf"
+        
         text_clips = []
         for index, text in enumerate(chunks):
             start_time = index * duration_per_chunk
             
-            # UKURAN & FONT DIUBAH DI SINI:
-            # fontsize diturunkan ke 45 agar tidak terlalu besar
-            # font diubah ke Arial-Bold atau Helvetica-Bold agar lebih tegas
             txt_clip = TextClip(
                 text, 
                 fontsize=45, 
                 color='white', 
-                font='Helvetica-Bold', 
+                font=font_path, 
                 stroke_color='black', 
                 stroke_width=2,
                 size=(video.w - 80, None), 
@@ -151,7 +151,7 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
         final_video = CompositeVideoClip([video] + text_clips)
         
-        print("[*] Merender video akhir dengan subtitle yang disesuaikan, mohon tunggu...")
+        print("[*] Merender video akhir dengan font Montserrat, mohon tunggu...")
         final_video.write_videofile(
             output_file, 
             codec="libx264", 
@@ -163,7 +163,7 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
         print(f"[+] Video Final Berhasil Dibuat: '{output_file}'")
         return True
     except Exception as e:
-        print("[-] Gagal mengedit video dengan teks:", e)
+        print("[-] Gagal mengedit video dengan font kustom:", e)
         return False
 
 # ==========================================
@@ -214,7 +214,6 @@ def upload_to_youtube(video_file, title, description):
 if __name__ == "__main__":
     print("=== BOT YOUTUBE SHORTS SEJARAH (FULL AUTOMATION) ===\n")
     
-    # Tahap 1: Ide & Naskah
     script = generate_history_short_script()
     
     if script:
@@ -223,15 +222,12 @@ if __name__ == "__main__":
         judul = script['title']
         deskripsi = f"{judul}\n\nFakta sejarah dunia yang jarang diketahui! Subscribe untuk misteri sejarah lainnya.\n#sejarah #shorts #faktaunik"
         
-        # Tahap 2: Unduh Bahan & Suara AI
         broll_success = download_vertical_broll(keyword, "background_shorts.mp4")
         voice_success = generate_voiceover(narasi, "voiceover.mp3")
         
-        # Tahap 3: Editing Video + Teks CapCut
         if broll_success and voice_success:
             edit_success = edit_video_with_captions("background_shorts.mp4", "voiceover.mp3", narasi, "final_shorts.mp4")
             
-            # Tahap 4: Upload Publikasi
             if edit_success:
                 upload_to_youtube("final_shorts.mp4", judul, deskripsi)
                 
