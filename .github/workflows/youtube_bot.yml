@@ -1,0 +1,39 @@
+name: YouTube How-To Video Bot
+
+on:
+  schedule:
+    - cron: '0 8 * * 1' # Otomatis berjalan setiap hari Senin jam 08:00 UTC
+  workflow_dispatch:     # Tombol "Run workflow" manual di tab Actions GitHub
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    # Memberikan izin agar bot bisa commit file hasil generate ke repo
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run YouTube Bot Script
+      env:
+        TOPIC: "Belajar Python untuk Pemula" # Topik bisa diubah di sini
+      run: |
+        python main.py
+
+    - name: Commit and push generated script back to repo
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add output_script.json
+        git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto-generate YouTube how-to script" && git push)
