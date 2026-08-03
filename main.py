@@ -3,7 +3,7 @@ import json
 import requests
 import subprocess
 import google.generativeai as genai
-from moviepy.editor import VideoFileClip, AudioFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip
 from moviepy.video.fx.all import loop
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -54,7 +54,7 @@ def generate_history_short_script():
         return None
 
 # ==========================================
-# 3. FUNGSI PEXELS (UNDUH B-ROLL)
+# 3. FUNGSI PEXELS (UNDUH B-ROLL VERTIKAL)
 # ==========================================
 def download_vertical_broll(query, filename="background_shorts.mp4"):
     print(f"[*] Mencari video Shorts (vertikal) di Pexels: '{query}'...")
@@ -98,10 +98,10 @@ def generate_voiceover(text, filename="voiceover.mp3"):
         return False
 
 # ==========================================
-# 5. FUNGSI MOVIEPY (EDITING VIDEO)
+# 5. FUNGSI MOVIEPY (EDITING VIDEO + TEKS CAPCUT)
 # ==========================================
-def edit_video(video_file, audio_file, output_file="final_shorts.mp4"):
-    print("[*] Memulai proses render & editing video...")
+def edit_video_with_captions(video_file, audio_file, script_text, output_file="final_shorts.mp4"):
+    print("[*] Memulai proses editing video dengan teks gaya CapCut...")
     try:
         video = VideoFileClip(video_file)
         audio = AudioFileClip(audio_file)
@@ -112,9 +112,43 @@ def edit_video(video_file, audio_file, output_file="final_shorts.mp4"):
         else:
             video = video.subclip(0, audio.duration)
             
-        final_video = video.set_audio(audio)
+        video = video.set_audio(audio)
         
-        # Render Video
+        # Memecah naskah menjadi beberapa bagian (4 kata per layar)
+        words = script_text.split(" ")
+        chunks = []
+        chunk_size = 4  
+        
+        for i in range(0, len(words), chunk_size):
+            chunk = " ".join(words[i:i+chunk_size])
+            chunks.append(chunk)
+            
+        total_duration = audio.duration
+        duration_per_chunk = total_duration / len(chunks) if chunks else total_duration
+        
+        text_clips = []
+        for index, text in enumerate(chunks):
+            start_time = index * duration_per_chunk
+            
+            txt_clip = TextClip(
+                text, 
+                fontsize=70, 
+                color='white', 
+                font='Arial-Bold', 
+                stroke_color='black', 
+                stroke_width=3,
+                size=(video.w - 100, None), 
+                method='caption'
+            )
+            
+            txt_clip = txt_clip.set_start(start_time)
+            txt_clip = txt_clip.set_duration(duration_per_chunk)
+            txt_clip = txt_clip.set_position(('center', 'center'))
+            text_clips.append(txt_clip)
+            
+        final_video = CompositeVideoClip([video] + text_clips)
+        
+        print("[*] Merender video akhir dengan subtitle gaya CapCut, mohon tunggu...")
         final_video.write_videofile(
             output_file, 
             codec="libx264", 
@@ -123,10 +157,10 @@ def edit_video(video_file, audio_file, output_file="final_shorts.mp4"):
             preset="ultrafast",
             logger=None
         )
-        print(f"[+] Video Final dibuat: '{output_file}'")
+        print(f"[+] Video Final Berhasil Dibuat: '{output_file}'")
         return True
     except Exception as e:
-        print("[-] Gagal mengedit video:", e)
+        print("[-] Gagal mengedit video dengan teks:", e)
         return False
 
 # ==========================================
@@ -139,34 +173,31 @@ def upload_to_youtube(video_file, title, description):
         return False
         
     try:
-        # Load kredensial dari token JSON
         token_data = json.loads(YOUTUBE_TOKEN_JSON)
         creds = Credentials.from_authorized_user_info(token_data)
         youtube = build('youtube', 'v3', credentials=creds)
         
-        # Konfigurasi Metadata Video
         body = {
             'snippet': {
                 'title': title,
                 'description': description,
                 'tags': ['sejarah', 'misteri', 'faktaunik', 'shorts', 'edukasi', 'sejarahdunia'],
-                'categoryId': '27' # 27 = Education
+                'categoryId': '27' 
             },
             'status': {
-                'privacyStatus': 'public', # Video langsung publik. Ubah ke 'private' jika ragu.
+                'privacyStatus': 'public', 
                 'selfDeclaredMadeForKids': False
             }
         }
         
         media = MediaFileUpload(video_file, chunksize=-1, resumable=True)
-        
         request = youtube.videos().insert(
             part=','.join(body.keys()),
             body=body,
             media_body=media
         )
         
-        print("[*] Mengunggah file, mohon tunggu...")
+        print("[*] Mengunggah file ke channel Anda...")
         response = request.execute()
         print(f"[+] SUCCESS! Video Berhasil Diupload! Link: https://youtu.be/{response['id']}")
         return True
@@ -189,13 +220,13 @@ if __name__ == "__main__":
         judul = script['title']
         deskripsi = f"{judul}\n\nFakta sejarah dunia yang jarang diketahui! Subscribe untuk misteri sejarah lainnya.\n#sejarah #shorts #faktaunik"
         
-        # Tahap 2: Unduh Bahan
+        # Tahap 2: Unduh Bahan & Suara AI
         broll_success = download_vertical_broll(keyword, "background_shorts.mp4")
         voice_success = generate_voiceover(narasi, "voiceover.mp3")
         
-        # Tahap 3: Editing
+        # Tahap 3: Editing Video + Teks CapCut
         if broll_success and voice_success:
-            edit_success = edit_video("background_shorts.mp4", "voiceover.mp3", "final_shorts.mp4")
+            edit_success = edit_video_with_captions("background_shorts.mp4", "voiceover.mp3", narasi, "final_shorts.mp4")
             
             # Tahap 4: Upload Publikasi
             if edit_success:
