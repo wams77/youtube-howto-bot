@@ -83,12 +83,16 @@ def download_vertical_broll(query, filename="background_shorts.mp4"):
         return False
 
 # ==========================================
-# 4. FUNGSI EDGE-TTS (VOICEOVER AI)
+# 4. FUNGSI EDGE-TTS (VOICEOVER AI - DIPERBAIKI)
 # ==========================================
 def generate_voiceover(text, filename="voiceover.mp3"):
     print("[*] Menghasilkan suara AI (Edge-TTS)...")
     voice = "id-ID-ArdiNeural" # Suara Pria Indonesia
-    command = f'edge-tts --voice {voice} --text "{text}" --write-media {filename}'
+    
+    # Membersihkan teks dari tanda kutip ganda agar tidak merusak command line
+    safe_text = text.replace('"', '').replace("'", "")
+    
+    command = f'edge-tts --voice {voice} --text "{safe_text}" --write-media {filename}'
     try:
         subprocess.run(command, shell=True, check=True)
         print(f"[+] Suara disimpan: '{filename}'")
