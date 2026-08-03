@@ -114,10 +114,10 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
         video = video.set_audio(audio)
         
-        # Memecah naskah menjadi beberapa bagian (4 kata per layar)
+        # Memecah naskah menjadi beberapa bagian (misal: 3 kata per layar agar lebih pas & dinamis)
         words = script_text.split(" ")
         chunks = []
-        chunk_size = 4  
+        chunk_size = 3  
         
         for i in range(0, len(words), chunk_size):
             chunk = " ".join(words[i:i+chunk_size])
@@ -130,14 +130,17 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
         for index, text in enumerate(chunks):
             start_time = index * duration_per_chunk
             
+            # UKURAN & FONT DIUBAH DI SINI:
+            # fontsize diturunkan ke 45 agar tidak terlalu besar
+            # font diubah ke Arial-Bold atau Helvetica-Bold agar lebih tegas
             txt_clip = TextClip(
                 text, 
-                fontsize=70, 
+                fontsize=45, 
                 color='white', 
-                font='Arial-Bold', 
+                font='Helvetica-Bold', 
                 stroke_color='black', 
-                stroke_width=3,
-                size=(video.w - 100, None), 
+                stroke_width=2,
+                size=(video.w - 80, None), 
                 method='caption'
             )
             
@@ -148,7 +151,7 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
         final_video = CompositeVideoClip([video] + text_clips)
         
-        print("[*] Merender video akhir dengan subtitle gaya CapCut, mohon tunggu...")
+        print("[*] Merender video akhir dengan subtitle yang disesuaikan, mohon tunggu...")
         final_video.write_videofile(
             output_file, 
             codec="libx264", 
