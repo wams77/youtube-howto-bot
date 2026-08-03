@@ -1,15 +1,13 @@
-name: YouTube How-To Video Bot
+name: YouTube Shorts History Bot
 
 on:
   schedule:
-    - cron: '0 8 * * 1' # Otomatis berjalan setiap hari Senin jam 08:00 UTC
-  workflow_dispatch:     # Tombol "Run workflow" manual di tab Actions GitHub
+    - cron: '0 8 * * *' # Berjalan otomatis setiap jam 08:00 UTC
+  workflow_dispatch:     # Memungkinkan Anda menekan tombol "Run workflow" secara manual
 
 jobs:
-  run-bot:
+  generate-video-assets:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write    # Memberikan izin agar bot bisa commit file hasil generate ke repo
 
     steps:
     - name: Checkout repository
@@ -23,17 +21,21 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install requests google-generativeai
 
-    - name: Run YouTube Bot Script
+    - name: Run Bot Script (Gemini & Pexels)
       env:
-        TOPIC: "Belajar Python untuk Pemula" # Topik bisa diubah di sini
+        # Menarik API Key dari GitHub Secrets ke dalam Environment Bot
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
       run: |
         python main.py
 
-    - name: Commit and push generated script back to repo
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add output_script.json
-        git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto-generate YouTube how-to script" && git push)
+    - name: Upload Output (JSON & MP4) as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: youtube-shorts-assets
+        path: |
+          script_data.json
+          background_shorts.mp4
+        retention-days: 7 # File akan otomatis terhapus dari server setelah 7 hari
