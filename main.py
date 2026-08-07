@@ -17,48 +17,48 @@ PEXELS_KEY = os.environ.get("PEXELS_API_KEY")
 YOUTUBE_TOKEN_JSON = os.environ.get("YOUTUBE_TOKEN")
 
 # ==========================================
-# 2. FUNGSI GEMINI (IDE & NASKAH ACAK/UNIK)
+# 2. FUNGSI GEMINI (IDE SEJARAH ANTI-DUPLIKAT)
 # ==========================================
 def generate_history_short_script():
-    print("[*] Meminta Gemini membuat naskah YouTube Short Sejarah yang unik...")
+    print("[*] Meminta Gemini membuat naskah sejarah yang unik...")
     if not GEMINI_KEY:
         print("[-] Error: GEMINI_API_KEY tidak ditemukan!")
         return None
         
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-3.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
-    # Menambahkan instruksi agar topik selalu di-refresh dan tidak monoton/terulang
     prompt = """
-    Bertindaklah sebagai pembuat konten YouTube Shorts misteri/sejarah dunia yang kreatif.
+    Bertindaklah sebagai pembuat konten YouTube Shorts misteri/sejarah dunia.
     Pilihlah 1 fakta sejarah dunia yang SANGAT UNIK, ANEH, DAN JARANG DIKETAHUI ORANG. 
-    PENTING: Jangan memilih fakta sejarah yang terlalu mainstream atau berulang. Cari dari era atau belahan dunia yang berbeda (misalnya sejarah Asia kuno, Afrika, Amerika Latin, atau Eropa pertengahan yang jarang dibahas).
+    PENTING: Jangan memilih fakta sejarah yang mainstream atau sudah sering dibahas. Cari dari era atau belahan dunia yang berbeda setiap kalinya agar tidak berulang.
     
     ATURAN KETAT:
-    - Naskah narasi (script_text) MAKSIMAL 80 kata agar durasinya pas di bawah 60 detik.
-    - Harus sangat memancing rasa penasaran dari detik pertama.
+    - Naskah narasi (script_text) MAKSIMAL 80 kata.
+    - Harus langsung memancing rasa penasaran dari detik pertama.
     
     Hasilkan output HANYA dalam format JSON valid dengan struktur:
     {
       "title": "Judul clickbait untuk metadata YouTube",
       "script_text": "Naskah narasi lengkap (Maks 80 kata)",
-      "search_query_pexels": "1 kata kunci bahasa Inggris simbolis untuk video B-Roll (contoh: 'ancient ruins', 'vintage clock', 'scary forest')"
+      "search_query_pexels": "abaikan ini"
     }
     """
     try:
         response = model.generate_content(prompt)
         raw_text = response.text.strip().replace("```json", "").replace("```", "")
         script_data = json.loads(raw_text)
-        print(f"[+] Berhasil membuat naskah unik! Judul: {script_data['title']}")
+        print(f"[+] Berhasil membuat naskah! Judul: {script_data['title']}")
         return script_data
     except Exception as e:
         print("[-] Gagal memproses data JSON dari Gemini:", e)
         return None
+
 # ==========================================
-# 3. FUNGSI PEXELS (UNDUH B-ROLL VERTIKAL)
+# 3. FUNGSI PEXELS (UNDUH B-ROLL)
 # ==========================================
 def download_vertical_broll(query, filename="background_shorts.mp4"):
-    print(f"[*] Mencari video Shorts (vertikal) di Pexels: '{query}'...")
+    print(f"[*] Mencari video Shorts di Pexels dengan kata kunci: '{query}'...")
     if not PEXELS_KEY:
         print("[-] Error: PEXELS_API_KEY tidak ditemukan!")
         return False
@@ -70,27 +70,27 @@ def download_vertical_broll(query, filename="background_shorts.mp4"):
         response = requests.get(url, headers=headers).json()
         if response.get("videos"):
             video_url = response["videos"][0]["video_files"][0]["link"]
-            print(f"[+] Mengunduh dari Pexels...")
+            print(f"[+] Mengunduh video...")
             vid_data = requests.get(video_url)
             with open(filename, 'wb') as f:
                 f.write(vid_data.content)
             print(f"[+] Video disimpan: '{filename}'")
             return True
         else:
-            print("[-] Video vertikal tidak ditemukan.")
+            print("[-] Video tidak ditemukan.")
             return False
     except Exception as e:
         print("[-] Gagal menghubungi Pexels API:", e)
         return False
 
 # ==========================================
-# 4. FUNGSI EDGE-TTS (VOICEOVER AI - DIPERBAIKI)
+# 4. FUNGSI EDGE-TTS (VOICEOVER AMAN)
 # ==========================================
 def generate_voiceover(text, filename="voiceover.mp3"):
     print("[*] Menghasilkan suara AI (Edge-TTS)...")
-    voice = "id-ID-ArdiNeural" # Suara Pria Indonesia
+    voice = "id-ID-ArdiNeural"
     
-    # Membersihkan teks dari tanda kutip ganda agar tidak merusak command line
+    # Pembersihan ekstra agar command line tidak crash karena tanda kutip
     safe_text = text.replace('"', '').replace("'", "")
     
     command = f'edge-tts --voice {voice} --text "{safe_text}" --write-media {filename}'
@@ -103,15 +103,14 @@ def generate_voiceover(text, filename="voiceover.mp3"):
         return False
 
 # ==========================================
-# 5. FUNGSI MOVIEPY (EDITING VIDEO + TEKS DISESUAIKAN DENGAN AUDIO)
+# 5. FUNGSI MOVIEPY (SUBTITLE SINKRON & FONT CUSTOM)
 # ==========================================
 def edit_video_with_captions(video_file, audio_file, script_text, output_file="final_shorts.mp4"):
-    print("[*] Memulai proses editing video dan menyelaraskan subtitle dengan audio...")
+    print("[*] Memulai proses editing video dan subtitle...")
     try:
         video = VideoFileClip(video_file)
         audio = AudioFileClip(audio_file)
         
-        # Looping video jika lebih pendek dari suara
         if video.duration < audio.duration:
             video = video.fx(loop, duration=audio.duration)
         else:
@@ -119,20 +118,15 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
         video = video.set_audio(audio)
         
-        # Memecah naskah menjadi kalimat/klausa pendek agar pas dibaca
-        # Kita memecah berdasarkan tanda baca atau kelompok kata yang lebih natural
         words = script_text.split(" ")
         chunks = []
-        chunk_size = 3  # 3 kata per kemunculan agar dinamis
+        chunk_size = 3  # 3 kata per layar
         
         for i in range(0, len(words), chunk_size):
             chunk = " ".join(words[i:i+chunk_size])
             chunks.append(chunk)
             
         total_duration = audio.duration
-        
-        # Menghitung bobot durasi berdasarkan panjang karakter tiap chunk
-        # agar teks yang lebih panjang mendapat waktu tampil yang sedikit lebih lama
         total_chars = sum(len(c) for c in chunks)
         
         font_path = "Montserrat-Black.ttf"
@@ -140,14 +134,13 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
         current_time = 0.0
         
         for text in chunks:
-            # Durasi proporsional berdasarkan jumlah karakter terhadap total durasi audio
+            # Mengatur kecepatan teks berdasarkan panjang karakter agar natural
             chunk_duration = (len(text) / total_chars) * total_duration if total_chars > 0 else total_duration / len(chunks)
-            # Batasi minimal durasi per chunk agar tidak terlalu kedip-kedip cepat (minimal 0.6 detik)
-            chunk_duration = max(chunk_duration, 0.6)
+            chunk_duration = max(chunk_duration, 0.6) # Minimal 0.6 detik agar tidak berkedip cepat
             
             txt_clip = TextClip(
                 text, 
-                fontsize=40, 
+                fontsize=45, 
                 color='white', 
                 font=font_path, 
                 stroke_color='black', 
@@ -163,10 +156,9 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             
             current_time += chunk_duration
             
-        # Jika total waktu teks melebihi durasi audio, sesuaikan agar klip terakhir tidak terpotong kasar
         final_video = CompositeVideoClip([video] + text_clips)
         
-        print("[*] Merender video akhir dengan sinkronisasi subtitle, mohon tunggu...")
+        print("[*] Merender video akhir, mohon tunggu...")
         final_video.write_videofile(
             output_file, 
             codec="libx264", 
@@ -178,10 +170,11 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
         print(f"[+] Video Final Berhasil Dibuat: '{output_file}'")
         return True
     except Exception as e:
-        print("[-] Gagal mengedit video dengan teks berselaras:", e)
+        print("[-] Gagal mengedit video dengan teks:", e)
         return False
+
 # ==========================================
-# 6. FUNGSI YOUTUBE API (UPLOAD OTOMATIS)
+# 6. FUNGSI YOUTUBE (UPLOAD OTOMATIS)
 # ==========================================
 def upload_to_youtube(video_file, title, description):
     print("[*] Memulai proses upload ke YouTube...")
@@ -198,7 +191,7 @@ def upload_to_youtube(video_file, title, description):
             'snippet': {
                 'title': title,
                 'description': description,
-                'tags': ['sejarah', 'misteri', 'faktaunik', 'shorts', 'edukasi', 'sejarahdunia'],
+                'tags': ['sejarah', 'misteri', 'faktaunik', 'shorts', 'funnyanimals', 'edukasi'],
                 'categoryId': '27' 
             },
             'status': {
@@ -223,24 +216,29 @@ def upload_to_youtube(video_file, title, description):
         return False
 
 # ==========================================
-# 7. BLOK EKSEKUSI UTAMA (MASTER PIPELINE)
+# 7. BLOK EKSEKUSI UTAMA
 # ==========================================
 if __name__ == "__main__":
-    print("=== BOT YOUTUBE SHORTS SEJARAH (FULL AUTOMATION) ===\n")
+    print("=== BOT YOUTUBE SHORTS (FULL AUTOMATION) ===\n")
     
     script = generate_history_short_script()
     
     if script:
-        keyword = script['search_query_pexels']
-        narasi = script['script_text']
+        # KUNCI BACKGROUND KE VIDEO HEWAN LUCU
+        keyword = "funny animal"
+        
+        # PEMBERSIH TEKS: Menghapus bintang/enter yang sering dibuat oleh AI
+        narasi_mentah = script['script_text']
+        narasi_bersih = narasi_mentah.replace('*', '').replace('\n', ' ').strip()
+        
         judul = script['title']
-        deskripsi = f"{judul}\n\nFakta sejarah dunia yang jarang diketahui! Subscribe untuk misteri sejarah lainnya.\n#sejarah #shorts #faktaunik"
+        deskripsi = f"{judul}\n\nFakta sejarah dunia yang jarang diketahui! Visual hanya pemanis ya hehe.\nSubscribe untuk konten menarik lainnya!\n#shorts #sejarah #faktaunik #funnyanimals"
         
         broll_success = download_vertical_broll(keyword, "background_shorts.mp4")
-        voice_success = generate_voiceover(narasi, "voiceover.mp3")
+        voice_success = generate_voiceover(narasi_bersih, "voiceover.mp3")
         
         if broll_success and voice_success:
-            edit_success = edit_video_with_captions("background_shorts.mp4", "voiceover.mp3", narasi, "final_shorts.mp4")
+            edit_success = edit_video_with_captions("background_shorts.mp4", "voiceover.mp3", narasi_bersih, "final_shorts.mp4")
             
             if edit_success:
                 upload_to_youtube("final_shorts.mp4", judul, deskripsi)
