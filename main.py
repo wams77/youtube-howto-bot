@@ -142,7 +142,7 @@ def edit_video_with_captions(video_file, audio_file, script_text, output_file="f
             txt_clip = TextClip(
                 text, 
                 fontsize=50, 
-                color='yellow', # Warna subtitle kuning 
+                color='white', # Warna subtitle kuning 
                 font=font_path, 
                 stroke_color='black', 
                 stroke_width=3,
