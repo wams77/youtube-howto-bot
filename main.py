@@ -51,7 +51,7 @@ def generate_history_short_script():
         return None
         
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-3.5-flash')
     
     # Ambil 10 judul terakhir untuk memberi tahu AI agar tidak mengulangnya
     recent_titles = ", ".join(bot_history["titles"][-10:]) if bot_history["titles"] else "Belum ada"
