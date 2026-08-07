@@ -2,13 +2,11 @@ name: YouTube Shorts History Bot (Auto 3x Sehari WITA)
 
 on:
   schedule:
-    # Jadwal otomatis untuk WITA (UTC+8):
-    # - Pukul 07:00 WITA -> 23:00 UTC (hari sebelumnya)
-    # - Pukul 12:00 WITA -> 04:00 UTC
-    # - Pukul 18:00 WITA -> 10:00 UTC
     - cron: '0 23,4,10 * * *'
-  
-  workflow_dispatch:     # Memungkinkan Anda menjalankan bot secara manual kapan saja dari tab Actions
+  workflow_dispatch:
+
+permissions:
+  contents: write    # <--- WAJIB DITAMBAHKAN AGAR BOT BISA MENGUBAH REPOSITORY
 
 jobs:
   run-bot:
@@ -28,7 +26,6 @@ jobs:
         python -m pip install --upgrade pip
         sudo apt-get update
         sudo apt-get install -y imagemagick
-        # Membuka izin kebijakan keamanan ImageMagick untuk merender teks kustom
         sudo sed -i 's/rights="none" pattern="@\*"/rights="read|write" pattern="@\*"/g' /etc/ImageMagick-6/policy.xml
         pip install -r requirements.txt
 
@@ -39,3 +36,12 @@ jobs:
         YOUTUBE_TOKEN: ${{ secrets.YOUTUBE_TOKEN }}
       run: |
         python main.py
+
+    # ---> BLOK BARU: MENYIMPAN HISTORY KE GITHUB <---
+    - name: Commit and Push History
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add history.txt
+        # Cek apakah ada perubahan, jika ada lakukan commit, jika tidak abaikan
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update history [skip ci]" && git push)
